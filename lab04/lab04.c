@@ -3,18 +3,22 @@
 #include <math.h>
 
 // Realiza a soa do indice desejado ao outro
-void somar(int truque, int primeiroIndice, int segundoIndice, int* vetorR, int* vetorV) {
+void somar(int truque, int primeiroIndice, int segundoIndice, int* vetorR, int* vetorV, int numeroElementosVetorV) {
     int soma = 0;
     // O loop roda sqrt(n) vezes, com a finilidade de encontrar e somar blocos [i,j] (correspondentes a um indice do vetorR) contidos entre
     // os indices dados e somar tambem os indices desejados do vetorV não incluidos completamente no vetorR
     for (int i = 0; i < truque; i++) {
-        int ultimoElementoDoBloco = (i + 1) * truque - 1;
+        int ultimoElementoDoBloco = (i + 1) * truque - 1 > numeroElementosVetorV ? numeroElementosVetorV - 1 : (i + 1) * truque - 1;
         int primeiroElementoDoBloco = i * truque;
 
         // Se o bloco [(i + 1) * truque - 1, i * truque] estiver contido nos indices desejados soma o indice do vetorR correspondente,
-        // Se não estiver contido, verifica quais posicoes do vetorV faltam serem somadas
+        // Se não estiver contido, verifica quais posicoes do vetorV faltam serem somadas        
         if (primeiroElementoDoBloco >= primeiroIndice && ultimoElementoDoBloco <= segundoIndice ) {
             soma += *(vetorR + i);
+        } else if (primeiroElementoDoBloco <= primeiroIndice && ultimoElementoDoBloco >= segundoIndice) {
+            for (int j = segundoIndice; j >= primeiroIndice; j--) {
+                soma += *(vetorV + j);
+            }
         } else if (primeiroElementoDoBloco < primeiroIndice && ultimoElementoDoBloco >= primeiroIndice) {
             for (int j = (truque - 1) + truque * i; j >= primeiroIndice; j--) {
                 soma += *(vetorV + j);
@@ -40,10 +44,10 @@ void atualizar(int truque, int indice, int numero, int* vetorR, int* vetorV) {
 }
 
 // Verifica qual operacao é a desejada, e chama a funcao correta
-void verificaOpercao(char operacao, int truque, int primeiroNumero, int segundoNumero, int* vetorR, int* vetorV) {
+void verificaOpercao(char operacao, int truque, int primeiroNumero, int segundoNumero, int* vetorR, int* vetorV, int numeroElementosVetorV) {
     switch (operacao) {
         case 's':
-            somar(truque, primeiroNumero, segundoNumero, vetorR, vetorV);
+            somar(truque, primeiroNumero, segundoNumero, vetorR, vetorV, numeroElementosVetorV);
             break;
         case 'a':
             atualizar(truque, primeiroNumero, segundoNumero, vetorR, vetorV);
@@ -80,7 +84,7 @@ int main(void) {
         conversoesBemSucedidas = scanf(" %c %d %d", &operacao, &primeiroNumero, &segundoNumero);
 
         if (conversoesBemSucedidas == 3) {
-            verificaOpercao(operacao, truque, primeiroNumero, segundoNumero, vetorR, vetorV);
+            verificaOpercao(operacao, truque, primeiroNumero, segundoNumero, vetorR, vetorV, numeroElementos);
         } else { 
             executarLoop = 0;
         }
