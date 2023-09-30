@@ -6,18 +6,38 @@
 
 #include "dequef.h"
 
-int aumentarVetor(dequef* D) {
-  float* novoVetorData = malloc(sizeof(float) * 4);
+// Diminui o vetor dinamico do deque dado, para t / r
+void diminuiVetor(dequef* D) {
+  float* novoVetorData = malloc(sizeof(float) * ceil(D->cap / D->factor));
 
-  printf("%f", D->cap * D->factor);
+  if(!novoVetorData) {
+    for (int i = 0; i < D->size; i++) {
+    *(novoVetorData + i) = *(D->data + ((i + D->first) % D->cap));
+    }
+
+    free(D->data);
+    D->first = 0;
+    D->data = novoVetorData;
+    D->cap = ceil(D->cap / D->factor);
+  }
+}
+
+int aumentarVetor(dequef* D) {
+  float* novoVetorData = malloc(sizeof(float) * ceil(D->cap * D->factor));
+
+  if(!novoVetorData)
+    return 0;
 
   for (int i = 0; i < D->size; i++) {
     *(novoVetorData + i) = *(D->data + ((i + D->first) % D->cap));
   }
 
   free(D->data);
+  D->first = 0;
   D->data = novoVetorData;
-  D->cap = floor(D->cap * D->factor);
+  D->cap = ceil(D->cap * D->factor);
+
+  return 1;
 }
 
 /**
@@ -74,8 +94,8 @@ long df_size(dequef* D) {
 **/
 int df_push(dequef* D, float x) {
   if (D->size == D->cap) {
-    printf("------------------\n");
-    aumentarVetor(D);
+    if (!aumentarVetor(D))
+      return 0;
   } 
   
   if (D->first == -1) {
@@ -85,6 +105,8 @@ int df_push(dequef* D, float x) {
     *(D->data + ((D->first + D->size) % D->cap)) = x;
   }
   D->size += 1;
+
+  return 1;
 }
 
 /**
@@ -100,7 +122,13 @@ int df_push(dequef* D, float x) {
 **/
 float df_pop(dequef* D) {
   if (D->size != 0) {
+    float valorUltimoIndice = *(D->data + ((D->first + D->size - 1) % D->cap));
     D->size -= 1;
+    if (ceil(D->cap / (D->factor * D->factor)) == D->size && D->cap / D->factor < D->mincap)
+      diminuiVetor(D);
+    return valorUltimoIndice;
+  } else {
+   return 0;
   }
 }
 
@@ -115,7 +143,8 @@ float df_pop(dequef* D) {
 **/
 int df_inject(dequef* D, float x) {
   if (D->size == D->cap) {
-    printf("Encheu");
+    if (!aumentarVetor(D))
+      return 0;
   } 
   
   if (D->first == -1) {
@@ -129,6 +158,8 @@ int df_inject(dequef* D, float x) {
     D->first = (D->first - 1);
   }
   D->size += 1;
+
+  return 1;
 }
 
 /**
@@ -145,12 +176,18 @@ int df_inject(dequef* D, float x) {
 **/
 float df_eject(dequef* D) {
   if (D->size != 0) {
+    float valorPrimeiroIndice = *(D->data + D->first);
     if (D->first + 1 == D->cap) {
       D->first = 0;
     } else {
       D->first += 1;
     }
     D->size -= 1;
+    if (ceil(D->cap / (D->factor * D->factor)) == D->size && D->cap / D->factor < D->mincap)
+      diminuiVetor(D);
+    return valorPrimeiroIndice;
+  } else {
+   return 0;
   }
 }
 
@@ -176,7 +213,7 @@ float df_get(dequef* D, long i) {
    Print the elements of D in a line.
 **/
 void df_print(dequef* D) {
-  printf("deque (%d): ", D->size);
+  printf("deque (%ld): ", D->size);
   for (int i = 0; i < D->size; i++) {
     printf("%.1f ", *(D->data + ((i + D->first) % D->cap)));
   }
@@ -234,8 +271,9 @@ int main(void) {
 
     else if (strcmp(cmd,"get") == 0) {
       scanf("%i",&i);
-      if (i >= 0 && i < df_size(D))
+      if (i >= 0 && i < df_size(D)){
         printf("D[%d] == %.1f\n",i,df_get(D,i));
+      }
     }
 
     else if (strcmp(cmd,"is-empty?") == 0) {
