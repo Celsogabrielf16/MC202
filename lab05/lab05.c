@@ -66,8 +66,6 @@ int main(void) {
 
                         palindromo[aux] = '\0';
 
-                        
-
                     } else if (numeroCaracteresPalindromo >= 1 && numeroCaracteresPalindromo * 2 + 2 > totalCaracteresPalavra) {
 
                         numeroCaracteresPalindromo -= 1;
@@ -88,7 +86,6 @@ int main(void) {
                         
                     }
 
-
                 } else {
                     numeroCaracteresPalindromo = verificaSucessorEAntecessor(caractere, 1, 1, 0, totalCaracteresPalavra);
 
@@ -107,11 +104,7 @@ int main(void) {
                             aux ++;
                         }
 
-
                         palindromo[aux] = '\0';
-
-                        
-
                     }
                 }
 
