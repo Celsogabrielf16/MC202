@@ -3,19 +3,18 @@
 
 typedef struct Grafo {
     int numeroVertices;
-    int grauMaximo;
     int** arestas;
     int* grau;
     int* PDVsCriticos;
 } Grafo;
 
-Grafo* criaGrafo(int numeroVertices, int grauMaximo) {
+// Cria um grafo, representado por uma lista de aadjacencias
+Grafo* criaGrafo(int numeroVertices) {
     Grafo* novoGrafo = (Grafo*) malloc(sizeof(Grafo));
     if (!novoGrafo)
         return NULL;
 
     novoGrafo->numeroVertices = numeroVertices;
-    novoGrafo->grauMaximo = grauMaximo;
     novoGrafo->grau = (int*) calloc(numeroVertices, sizeof(int));
     if (!novoGrafo->grau)
         return NULL;
@@ -28,7 +27,7 @@ Grafo* criaGrafo(int numeroVertices, int grauMaximo) {
     if (!novoGrafo->arestas)
         return NULL;
     for(int i = 0; i < numeroVertices; i++) {
-        novoGrafo->arestas[i] = (int*) malloc(grauMaximo * sizeof(int));
+        novoGrafo->arestas[i] = (int*) malloc((numeroVertices - 1) * sizeof(int));
         if (!novoGrafo->arestas[i])
             return NULL;
     }
@@ -36,6 +35,7 @@ Grafo* criaGrafo(int numeroVertices, int grauMaximo) {
     return novoGrafo;
 }
 
+// Libera o grafo dado
 void liberaGrafo(Grafo* grafoAtual) {
     if(grafoAtual) {
         for (int i = 0; i < grafoAtual->numeroVertices; i++)
@@ -47,6 +47,7 @@ void liberaGrafo(Grafo* grafoAtual) {
     }
 }
 
+// Insere uma aresta no grafo sem repeticao
 void insereAresta(Grafo* grafo, int verticeOrigem, int verticeDestino) {
     int jaExisteNaLista = 0;
     for(int i = 0; i < grafo->grau[verticeOrigem]; i++) {
@@ -64,14 +65,15 @@ void insereAresta(Grafo* grafo, int verticeOrigem, int verticeDestino) {
     }
 }
 
-int buscaProfundidadeRec (Grafo* grafo, int verticeAtual, int verticeAnterior, int* visitados) {
+// Funcao recursiva que verifica se o vertice dado faz parte de um ciclo, ou seja tem como chegar nele apartir de dois ou mais vizinhos diferentes
+int encontraCicloRec (Grafo* grafo, int verticeAtual, int verticeAnterior, int* visitados) {
     visitados[verticeAtual] = 1;
     int encontrouCiclo = 0;
 
     for(int i = 0; i < grafo->grau[verticeAtual]; i++) {
         int verticeVizinho = grafo->arestas[verticeAtual][i];
         if (visitados[verticeVizinho] == 0) {
-            encontrouCiclo = buscaProfundidadeRec (grafo, verticeVizinho, verticeAtual, visitados);
+            encontrouCiclo = encontraCicloRec (grafo, verticeVizinho, verticeAtual, visitados);
             if (encontrouCiclo) {
                 break;
             }
@@ -84,7 +86,8 @@ int buscaProfundidadeRec (Grafo* grafo, int verticeAtual, int verticeAnterior, i
     return encontrouCiclo;
 }
 
-int buscaCaminho (Grafo* grafo, int verticeAtual, int verticeMeta, int* verticesVisitados) {
+// Verifica se podemos chegar de um vizinho a outro sem passar pelo vertice em questao
+int encontraPasseioEntreVizinhos (Grafo* grafo, int verticeAtual, int verticeMeta, int* verticesVisitados) {
     verticesVisitados[verticeAtual] = 1;
     int encontrouCaminho = 0;
 
@@ -93,7 +96,7 @@ int buscaCaminho (Grafo* grafo, int verticeAtual, int verticeMeta, int* vertices
         if (verticeVizinho == verticeMeta) {
             return 1;
         } else if (verticesVisitados[verticeVizinho] == 0) {
-            encontrouCaminho = buscaCaminho(grafo, verticeVizinho, verticeMeta, verticesVisitados);
+            encontrouCaminho = encontraPasseioEntreVizinhos(grafo, verticeVizinho, verticeMeta, verticesVisitados);
             if (encontrouCaminho) {
                 break;
             }
@@ -103,13 +106,15 @@ int buscaCaminho (Grafo* grafo, int verticeAtual, int verticeMeta, int* vertices
     return encontrouCaminho;
 }
 
-int buscaCiclo(Grafo* grafo, int verticeAtual, int verticeInicial) {
+// Verifica se o vertice em questao faz parte de um ciclo, se ele faz verificamos se consiguimos chegar em um vizinho apartir de outro
+int encontraCiclo(Grafo* grafo, int verticeAtual, int verticeInicial) {
     int visitados[grafo->numeroVertices], encontrouCiclo = 0;
     for (int i = 0; i < grafo->numeroVertices; i++)
         visitados[i] = 0;
 
+    // Marcamos o vertice inicial como 2, pois se encontrarmos o mesmo no percurso, encontramos um ciclo
     visitados[verticeInicial] = 2;
-    encontrouCiclo = buscaProfundidadeRec(grafo, verticeAtual, verticeInicial, visitados);
+    encontrouCiclo = encontraCicloRec(grafo, verticeAtual, verticeInicial, visitados);
 
     if (encontrouCiclo) {
         for(int i = 0; i < grafo->grau[verticeAtual]; i++) {
@@ -118,9 +123,12 @@ int buscaCiclo(Grafo* grafo, int verticeAtual, int verticeInicial) {
                 verticesVisitados[i] = 0;
 
             verticesVisitados[verticeAtual] = 1;
-            int encontrouCaminho = buscaCaminho(grafo, grafo->arestas[verticeAtual][i], grafo->arestas[verticeAtual][(i + 1) % grafo->grau[verticeAtual]], verticesVisitados);
+            int vizinhoPosicaoI = grafo->arestas[verticeAtual][i];
+            int vizinhoPosicaoIMais1 = grafo->arestas[verticeAtual][(i + 1) % grafo->grau[verticeAtual]];
+            int encontrouPasseio = encontraPasseioEntreVizinhos(grafo, vizinhoPosicaoI, vizinhoPosicaoIMais1, verticesVisitados);
 
-            if (!encontrouCaminho) {
+            // Se nao for encontrado um passeio entre os vizinho sem passar pelo vertice atual ele é um PDV mesmo fazendo parte de um ciclo
+            if (!encontrouPasseio) {
                 encontrouCiclo = 0;
                 break;
             }
@@ -130,26 +138,28 @@ int buscaCiclo(Grafo* grafo, int verticeAtual, int verticeInicial) {
     return encontrouCiclo;
 }
 
-int buscaProfundidade(Grafo* grafo, int verticeInicial) {
+// Encontra PDVs criticos e retorna quantos encontrou apartir do vertice inicial, ou seja, quantos vizinhos do vertice dado sao criticos
+int encontraPDVsCriticos(Grafo* grafo, int verticeInicial) {
     int PDVsCriticosAdicionados = 0;
 
     for (int i = 0; i < grafo->grau[verticeInicial]; i++) {
-        int temCiclo = buscaCiclo(grafo, grafo->arestas[verticeInicial][i], verticeInicial);
-        if (grafo->grau[grafo->arestas[verticeInicial][i]] > 1 && !temCiclo) {
+        int encontrouCiclo = encontraCiclo(grafo, grafo->arestas[verticeInicial][i], verticeInicial);
+        if (grafo->grau[grafo->arestas[verticeInicial][i]] > 1 && !encontrouCiclo) {
+            // Se o vizinho ainda nao foi marcado como PDV, marcamos e consideramos o mesmo
             if (grafo->PDVsCriticos[grafo->arestas[verticeInicial][i]] == 0) {
                 grafo->PDVsCriticos[grafo->arestas[verticeInicial][i]] = 1;
                 PDVsCriticosAdicionados++;
             }
         }
     }
-
     return PDVsCriticosAdicionados;
 }
 
 int main(void) {
     int numeroDePDV;
+
     while(scanf("%d", &numeroDePDV) == 1) {
-        Grafo* grafo = criaGrafo(numeroDePDV, numeroDePDV - 1);
+        Grafo* grafo = criaGrafo(numeroDePDV);
         int numeroPDVOrigem;
         for (int i = 0; i < numeroDePDV; i++) {
 
@@ -161,20 +171,21 @@ int main(void) {
             if (numeroPDVOrigem == 0)
                 break;
 
-            while ( scanf("%d%c", &numeroPDVDestino, &lixo) != EOF) {
-
+            while (scanf("%d%c", &numeroPDVDestino, &lixo) != EOF) {
                 insereAresta(grafo, numeroPDVOrigem - 1, numeroPDVDestino - 1);
 
                 if (lixo == '\n')
                     break;
             }
         }
+
         if (numeroDePDV) {
             int numeroPDVCritico = 0;
             for (int i = 0; i < grafo->numeroVertices; i++)
-                numeroPDVCritico += buscaProfundidade(grafo, i);
+                numeroPDVCritico += encontraPDVsCriticos(grafo, i);
             printf("%d\n", numeroPDVCritico);
         }
+
         liberaGrafo(grafo);
     }
     return 0;
